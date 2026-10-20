@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plagiarism Detector Using Rolling Hash (Rabin–Karp) and Hash Maps</title>
+  <meta name="description" content="An academic web application demonstrating exact and near-exact plagiarism detection using word shingling, Rabin-Karp rolling hashes, and hash map indexing.">
+  <link rel="stylesheet" href="style.css">
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+  <a href="#comparison-tool" class="skip-link">Skip to comparison tool</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>VeriHash</h1>
+          <span class="brand-subtitle">Rolling Hash Plagiarism Detector</span>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#comparison-tool" class="nav-link active">Comparison Tool</a></li>
+          <li><a href="#visualizer-sandbox" class="nav-link">Rolling Hash Visualizer</a></li>
+          <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+          <li><a href="#why-this-approach" class="nav-link">Why This Approach</a></li>
+          <li><a href="#complexity-architecture" class="nav-link">Complexity & Architecture</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle dark/light theme">
+          <span>🌙</span> Dark Theme
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-badges">
+          <span class="badge badge-primary">Rabin–Karp Algorithm</span>
+          <span class="badge badge-primary">Hash Map Inverted Index</span>
+          <span class="badge badge-success">Average Time O(n + m)</span>
+          <span class="badge badge-neutral">Interactive Educational Demonstration</span>
+        </div>
+        <h2 class="hero-title">Plagiarism Detector Using Rolling Hash (Rabin–Karp) and Hash Maps</h2>
+        <p class="hero-lead">
+          Designed for students and educators to explore how modern text similarity engines detect exact and near-exact copied passages. By decomposing texts into overlapping word shingles, fingerprinting them with polynomial rolling hashes, and indexing with hash maps, identical sequences are pinpointed in linear time.
+        </p>
+
+        <div class="privacy-banner">
+          <span class="privacy-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </span>
+          <div>
+            <strong>100% Client-Side Privacy Guarantee:</strong> This is an interactive educational demonstration. All text tokenization, rolling hash computations, and similarity checks run purely inside your browser. No text is uploaded, transmitted, or stored on any server.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Comparison Tool Section -->
+    <section id="comparison-tool" class="tool-section">
+      <div class="container">
+        <div class="tool-card">
+          <!-- Control Toolbar -->
+          <div class="tool-toolbar">
+            <div class="toolbar-row">
+              <!-- Preset Loader -->
+              <div class="toolbar-group">
+                <label for="preset-select" class="control-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                  Load Example:
+                </label>
+                <select id="preset-select" class="select-input">
+                  <option value="direct_plagiarism">Direct Verbatim Plagiarism (Rearranged Paragraphs)</option>
+                  <option value="partial_plagiarism">Partial Plagiarism (Copied Passages with Minor Edits)</option>
+                  <option value="paraphrased_limitations">Paraphrased Content (Demonstrating Limitations)</option>
+                  <option value="independent_texts">Completely Independent Topics (0% Overlap)</option>
+                </select>
+              </div>
+
+              <!-- Shingle Size Control -->
+              <div class="toolbar-group">
+                <span class="control-label" id="shingle-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                  Shingle Size (k):
+                </span>
+                <div class="shingle-control-box">
+                  <div class="shingle-slider-wrap">
+                    <input type="range" id="shingle-slider" class="shingle-slider" min="2" max="15" value="5" aria-labelledby="shingle-label">
+                    <span id="shingle-val-badge" class="shingle-value-badge">5</span>
+                  </div>
+                  <div class="shingle-presets" aria-label="Shingle presets">
+                    <button type="button" class="preset-chip" data-k="3" title="3-word shingles: sensitive, short phrases">3</button>
+                    <button type="button" class="preset-chip active" data-k="5" title="5-word shingles: balanced default">5</button>
+                    <button type="button" class="preset-chip" data-k="7" title="7-word shingles: sentence clauses">7</button>
+                    <button type="button" class="preset-chip" data-k="10" title="10-word shingles: strict verbatim">10</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toolbar Actions Row -->
+            <div class="toolbar-row">
+              <div class="shingle-hint">
+                <strong>Current Configuration:</strong>
+                <span id="shingle-hint-text">Balanced standard setting. Ideal for detecting copied clauses and partial sentences.</span>
+              </div>
+
+              <div class="toolbar-group">
+                <button type="button" id="swap-btn" class="btn btn-secondary" title="Swap Source and Checked texts">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                  Swap Texts
+                </button>
+                <button type="button" id="clear-btn" class="btn btn-danger-ghost" title="Clear both text areas">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Clear
+                </button>
+                <button type="button" id="compare-btn" class="btn btn-primary" title="Execute Rabin-Karp comparison">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  Compare Texts
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Text Input & Viewer Areas -->
+          <div class="comparison-grid">
+            <!-- Source Text Pane -->
+            <div id="source-pane" class="document-pane">
+              <div class="pane-header">
+                <div class="pane-title-group">
+                  <span class="pane-title">Source Text (Original Document)</span>
+                </div>
+                <div class="pane-stats">
+                  <span id="source-word-count">0 words</span>
+                  <span id="source-shingle-count">0 shingles</span>
+                  <div class="view-mode-tabs" role="tablist">
+                    <button type="button" id="source-tab-edit" class="view-tab-btn active" role="tab" aria-selected="true">Edit</button>
+                    <button type="button" id="source-tab-highlight" class="view-tab-btn" role="tab" aria-selected="false">Highlights</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pane-body">
+                <textarea id="source-text-input" class="text-input-area" placeholder="Paste or type the original reference document here..." aria-label="Source Text"></textarea>
+                <div id="source-highlight-view" class="highlighted-view" role="region" aria-label="Source text highlighted matches" tabindex="0"></div>
+              </div>
+            </div>
+
+            <!-- Checked Text Pane -->
+            <div id="check-pane" class="document-pane">
+              <div class="pane-header">
+                <div class="pane-title-group">
+                  <span class="pane-title">Text to Check (Suspect Document)</span>
+                </div>
+                <div class="pane-stats">
+                  <span id="check-word-count">0 words</span>
+                  <span id="check-shingle-count">0 shingles</span>
+                  <div class="view-mode-tabs" role="tablist">
+                    <button type="button" id="check-tab-edit" class="view-tab-btn active" role="tab" aria-selected="true">Edit</button>
+                    <button type="button" id="check-tab-highlight" class="view-tab-btn" role="tab" aria-selected="false">Highlights</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pane-body">
+                <textarea id="check-text-input" class="text-input-area" placeholder="Paste or type the document you want to check for plagiarism here..." aria-label="Text to Check"></textarea>
+                <div id="check-highlight-view" class="highlighted-view" role="region" aria-label="Checked text highlighted matches" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Dashboard -->
+          <div id="results-container" class="results-container">
+            <div class="results-header">
+              <div class="results-title-group">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  Comparison Results & Similarity Analysis
+                </h3>
+                <p>Calculated via Rabin–Karp polynomial rolling fingerprints and hash-map verification.</p>
+              </div>
+              <div class="inspector-tools">
+                <button type="button" id="copy-summary-btn" class="btn btn-secondary btn-sm" title="Copy text summary to clipboard">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copy Summary
+                </button>
+                <button type="button" id="export-report-btn" class="btn btn-secondary btn-sm" title="Download JSON report">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Export Report (JSON)
+                </button>
+              </div>
+            </div>
+
+            <!-- Score Hero Banner -->
+            <div class="similarity-score-hero">
+              <div class="gauge-col">
+                <div class="gauge-circle">
+                  <svg viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="58"></circle>
+                    <circle id="gauge-progress-circle" class="gauge-progress" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42"></circle>
+                  </svg>
+                  <div class="gauge-value">
+                    <span id="score-percent" class="gauge-percent">0%</span>
+                    <span class="gauge-label">Similarity</span>
+                  </div>
+                </div>
+                <span id="score-verdict-badge" class="verdict-badge">Analyzing...</span>
+              </div>
+
+              <div class="score-explanation-col">
+                <div class="score-formula-box">
+                  <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">Metric Formula</div>
+                  <div class="formula-text">Containment Score = (|S_checked ∩ S_source| / |S_checked|) × 100%</div>
+                </div>
+                <p class="score-desc">
+                  This similarity score represents the proportion of word shingles in the <strong>Text to Check</strong> that were also found in the <strong>Source Text</strong>. A higher percentage indicates that a larger portion of the checked text consists of exact word combinations present in the reference source.
+                </p>
+                <div class="disclaimer-callout">
+                  <span class="disclaimer-icon" aria-hidden="true">⚠️</span>
+                  <div>
+                    <strong>Scholarly Review Notice:</strong> This score is a <em>similarity indicator</em>, not absolute proof of academic dishonesty. Shared passages may consist of properly cited quotations, common technical terminology, or standard bibliographies. A qualified educator or researcher must review the matched passages in context.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <span class="metric-title">Matched Shingles</span>
+                <span id="metric-matched-shingles" class="metric-val">0</span>
+                <span class="metric-sub">Verified identical word chunks</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Total Checked Shingles</span>
+                <span id="metric-total-shingles" class="metric-val">0</span>
+                <span class="metric-sub">Denominator in containment score</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Longest Copied Run</span>
+                <span id="metric-longest-run" class="metric-val">0 words</span>
+                <span class="metric-sub">Longest uninterrupted match</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Jaccard Similarity</span>
+                <span id="metric-jaccard" class="metric-val">0%</span>
+                <span class="metric-sub">|A ∩ B| / |A ∪ B| intersection</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Hash Collision Check</span>
+                <span id="metric-collisions" class="metric-val">0 resolved</span>
+                <span class="metric-sub">Exact string checks performed</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Processing Time</span>
+                <span id="metric-time" class="metric-val">0 ms</span>
+                <span class="metric-sub">Client-side execution time</span>
+              </div>
+            </div>
+
+            <!-- Matched Chunks Explorer Table -->
+            <div class="matched-chunks-section">
+              <div class="inspector-header">
+                <span class="inspector-title">List of Matched Word Shingles</span>
+                <div class="inspector-tools">
+                  <input type="text" id="table-search-input" class="search-input" placeholder="Filter matched phrases...">
+                </div>
+              </div>
+              <div class="chunks-table-wrap">
+                <table class="chunks-table" aria-label="Matched word shingles table">
+                  <thead>
+                    <tr>
+                      <th scope="col" style="width: 60px;">#</th>
+                      <th scope="col">Matched Shingle Passage</th>
+                      <th scope="col">Rabin–Karp Hash</th>
+                      <th scope="col">Positions (Src &rarr; Chk)</th>
+                      <th scope="col">Verification Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="matched-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Rolling Hash Visualizer Sandbox -->
+    <section id="visualizer-sandbox" class="visualizer-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag">Algorithm Sandbox</span>
+          <h2 class="section-title">Interactive Rolling Hash Visualizer</h2>
+          <p class="section-desc">
+            Watch the Rabin–Karp sliding window move across a sentence step-by-step. Instead of rehashing all words from scratch, rolling hashes update the fingerprint in <strong>O(1) constant time</strong> by evicting the leaving word and incorporating the arriving word.
+          </p>
+        </div>
+
+        <div class="visualizer-card">
+          <!-- Visualizer Controls -->
+          <div class="viz-controls-bar">
+            <div class="viz-input-group">
+              <label for="viz-sentence-input" class="control-label">Sample Sentence:</label>
+              <input type="text" id="viz-sentence-input" value="The quick brown fox jumps over the lazy dog in the park" aria-label="Sentence for rolling hash visualization">
+            </div>
+
+            <div class="toolbar-group">
+              <label for="viz-k-input" class="control-label">Window Size (k):</label>
+              <input type="range" id="viz-k-input" min="2" max="6" value="4" class="shingle-slider" aria-label="Window size slider">
+              <span id="viz-k-val" class="shingle-value-badge">4</span>
+            </div>
+
+            <div class="viz-playback-controls">
+              <button type="button" id="viz-btn-reset" class="btn btn-secondary" title="Reset to beginning">⏮ Reset</button>
+              <button type="button" id="viz-btn-prev" class="btn btn-secondary" title="Previous window">◀ Prev</button>
+              <button type="button" id="viz-btn-play" class="btn btn-primary" title="Play animation"><span>▶</span> Play</button>
+              <button type="button" id="viz-btn-next" class="btn btn-secondary" title="Next window">Next ▶</button>
+            </div>
+          </div>
+
+          <!-- Sentence Track -->
+          <div class="sentence-track-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span id="viz-step-counter" style="font-size: 0.8125rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase;">Window 1</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">Polynomial Base b = 31,337 | Modulo M = 2^61 - 1</span>
+            </div>
+            <div id="viz-tokens-track" class="tokens-track" aria-live="polite">
+              <!-- Tokens populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Live Math & Hash Map Breakdown -->
+          <div class="viz-math-grid">
+            <!-- Rolling Math Box -->
+            <div class="math-box">
+              <div class="math-box-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                O(1) Rolling Update Equation
+              </div>
+              <div class="math-steps">
+                <div class="math-row">
+                  <span class="math-row-label">Active Shingle Words:</span>
+                  <span id="viz-window-words" class="math-row-val">"..."</span>
+                </div>
+                <div class="math-row">
+                  <span class="math-row-label">Previous Window Hash (H_prev):</span>
+                  <span id="viz-current-hash" class="math-row-val">0</span>
+                </div>
+                <div id="viz-evicted-row" class="math-row" style="display: none;">
+                  <span class="math-row-label math-highlight-evict">[-] Evict Leftmost Word:</span>
+                  <span class="math-row-val math-highlight-evict">
+                    <span id="viz-evicted-word"></span> <span id="viz-evicted-term"></span>
+                  </span>
+                </div>
+                <div class="math-row">
+                  <span class="math-row-label">[*] Shift by Base:</span>
+                  <span class="math-row-val">&times; 31,337</span>
+                </div>
+                <div id="viz-incoming-row" class="math-row" style="display: none;">
+                  <span class="math-row-label math-highlight-inc">[+] Add Incoming Word:</span>
+                  <span class="math-row-val math-highlight-inc">
+                    <span id="viz-incoming-word"></span> <span id="viz-incoming-term"></span>
+                  </span>
+                </div>
+              </div>
+
+              <div class="math-hash-final">
+                <div>
+                  <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-primary); font-weight: 700;">New Fingerprint Hash</div>
+                  <div id="viz-final-hash" class="hash-num">0</div>
+                </div>
+                <div style="font-size: 0.75rem; text-align: right; color: var(--text-muted);">
+                  Computed in <strong>O(1)</strong><br>3 ops vs 4 full word hashes
+                </div>
+              </div>
+            </div>
+
+            <!-- Hash Map Inverted Index Preview -->
+            <div class="math-box">
+              <div class="math-box-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                Hash Map Indexer (Key &rarr; Buckets)
+              </div>
+              <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 10px;">
+                Each computed shingle hash is mapped in the hash table with its word position. Lookup average time is <strong>O(1)</strong>.
+              </p>
+              <div id="viz-hashmap-buckets" class="hashmap-buckets-preview">
+                <!-- Dynamically populated buckets -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works (6 Core Steps) -->
+    <section id="how-it-works" class="how-it-works-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag">Theoretical Workflow</span>
+          <h2 class="section-title">How the Detection Engine Works</h2>
+          <p class="section-desc">
+            The plagiarism detector follows a disciplined 6-stage computational pipeline combining lexical preprocessing, polynomial rolling hashes, and hash-map verification.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <!-- Step 1 -->
+          <article class="step-card">
+            <div class="step-number">1</div>
+            <h3>Clean & Tokenize Text</h3>
+            <p>
+              Raw strings are normalized by folding uppercase letters to lowercase, stripping disruptive punctuation, and preserving exact word boundaries and character offsets.
+            </p>
+            <div class="step-mini-code">
+              "The Transformer Model" &rarr; ["the", "transformer", "model"]
+            </div>
+          </article>
+
+          <!-- Step 2 -->
+          <article class="step-card">
+            <div class="step-number">2</div>
+            <h3>Generate Word Shingles</h3>
+            <p>
+              The token stream is segmented into overlapping word sequences of fixed size <em>k</em> (n-grams of words). Shingles advance word-by-word, capturing local phrase syntax.
+            </p>
+            <div class="step-mini-code">
+              k=3: [w0, w1, w2], [w1, w2, w3], [w2, w3, w4]...
+            </div>
+          </article>
+
+          <!-- Step 3 -->
+          <article class="step-card">
+            <div class="step-number">3</div>
+            <h3>Compute Rabin–Karp Fingerprints</h3>
+            <p>
+              Each shingle is assigned a compact numeric fingerprint using a polynomial rolling hash. Moving the window to the next shingle requires only an O(1) arithmetic shift.
+            </p>
+            <div class="step-mini-code">
+              H_{i+1} = ((H_i - w_{out} &middot; b^{k-1}) &middot; b + w_{in}) mod M
+            </div>
+          </article>
+
+          <!-- Step 4 -->
+          <article class="step-card">
+            <div class="step-number">4</div>
+            <h3>Index in Hash Map</h3>
+            <p>
+              All fingerprints from the source document are stored in a Hash Map (inverted index). Each hash key points to the shingle's position and original word tokens.
+            </p>
+            <div class="step-mini-code">
+              hashMap.set(fingerprint, [occurrenceDetails...])
+            </div>
+          </article>
+
+          <!-- Step 5 -->
+          <article class="step-card">
+            <div class="step-number">5</div>
+            <h3>Verify Against Original Text</h3>
+            <p>
+              When a query shingle produces a matching hash in the map, the detector performs an exact word-by-word comparison to eliminate false positives caused by hash collisions.
+            </p>
+            <div class="step-mini-code">
+              if (sourceWords === checkWords) &rarr; Verified Match!
+            </div>
+          </article>
+
+          <!-- Step 6 -->
+          <article class="step-card">
+            <div class="step-number">6</div>
+            <h3>Score & Reconstruct Highlights</h3>
+            <p>
+              The engine calculates the Containment Score and merges overlapping matched shingles into smooth, continuous highlight spans for synchronized side-by-side inspection.
+            </p>
+            <div class="step-mini-code">
+              Containment = (|S_check ∩ S_source| / |S_check|) &times; 100%
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Deep Dive: Why This Approach & Limitations -->
+    <section id="why-this-approach" class="deep-dive-section">
+      <div class="container">
+        <div class="deep-dive-grid">
+          <!-- Why This Approach -->
+          <div class="dive-card">
+            <h3>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Why This Approach?
+            </h3>
+            <p>
+              Combining Rabin–Karp rolling hashes with hash-map indexing provides key architectural advantages over naive string matching and global sequence alignment:
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <span class="feature-icon check">✓</span>
+                <div>
+                  <strong>High Computational Efficiency:</strong> Rather than spending O(k) operations hashing every consecutive word chunk, the rolling property achieves O(1) time per shift, completing scans in milliseconds.
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon check">✓</span>
+                <div>
+                  <strong>Detection of Rearranged Passages:</strong> Unlike rigid diff tools or global sequence alignment algorithms that fail when paragraphs are transposed, shingles are indexed position-independently in the hash table.
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon check">✓</span>
+                <div>
+                  <strong>Extensible to Multi-Document Corpora:</strong> The hash map acts as an inverted index. Multiple reference textbooks or entire student cohorts can be indexed into the same map without slowing query time.
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon check">✓</span>
+                <div>
+                  <strong>Deterministic & Explainable:</strong> Unlike black-box neural similarity scores, rolling hash matches provide exact word offsets and cryptographic proofs for human audit.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Limitations & Shingle Size Tradeoffs -->
+          <div class="dive-card">
+            <h3>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              Limitations & Shingle Trade-offs
+            </h3>
+            <p>
+              While exceptionally fast for verbatim and near-exact copying, word-shingling has inherent linguistic constraints that users must understand:
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <span class="feature-icon warn">!</span>
+                <div>
+                  <strong>Blind to Paraphrasing & Synonyms:</strong> If a student systematically replaces words with synonyms or rephrases active voice into passive voice, exact word shingles will fail to match.
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon warn">!</span>
+                <div>
+                  <strong>Sensitivity to Word Order Changes:</strong> Swapping two words inside a 5-word shingle alters both shingles spanning those words.
+                </div>
+              </li>
+            </ul>
+
+            <!-- Trade-off Table -->
+            <table class="tradeoff-table">
+              <thead>
+                <tr>
+                  <th>Shingle Size (k)</th>
+                  <th>Sensitivity</th>
+                  <th>Trade-off Impact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>k = 2 – 3</strong></td>
+                  <td>Very High</td>
+                  <td>Matches common conversational idioms ("in order to", "on the other hand"), producing frequent false positives.</td>
+                </tr>
+                <tr>
+                  <td><strong>k = 4 – 6 (Recommended)</strong></td>
+                  <td>Balanced</td>
+                  <td>Captures substantive clauses while avoiding common speech collocations. Optimal for academic essays.</td>
+                </tr>
+                <tr>
+                  <td><strong>k = 8 – 12+</strong></td>
+                  <td>Strict Verbatim</td>
+                  <td>Requires whole sentences to be copied identically; minor edits will easily bypass detection.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture & Complexity Analysis -->
+    <section id="complexity-architecture" class="complexity-section">
+      <div class="container">
+        <div class="complexity-card">
+          <div class="section-head" style="margin-bottom: 24px;">
+            <span class="section-tag">Computational Rigor</span>
+            <h2 class="section-title">Complexity Analysis & System Architecture</h2>
+            <p class="section-desc">
+              Understanding why Rabin–Karp with Hash Maps scales to large text collections.
+            </p>
+          </div>
+
+          <div class="complexity-grid">
+            <div class="comp-box">
+              <div class="comp-box-header">
+                <h4>Index Construction</h4>
+                <span class="comp-badge">O(n)</span>
+              </div>
+              <p>
+                Tokenizing <em>n</em> words takes O(n). Computing the first shingle hash takes O(k). Each subsequent (n - k) shingle is computed via the rolling hash formula in O(1) arithmetic operations and inserted into the hash map in O(1) average time.
+              </p>
+            </div>
+
+            <div class="comp-box">
+              <div class="comp-box-header">
+                <h4>Document Querying</h4>
+                <span class="comp-badge">O(m)</span>
+              </div>
+              <p>
+                Scanning a suspect text of <em>m</em> words similarly rolls the hash window in O(1) time per shingle. Hash map lookup takes O(1) average time, making query scanning strictly linear in the length of the checked text.
+              </p>
+            </div>
+
+            <div class="comp-box">
+              <div class="comp-box-header">
+                <h4>Total Expected Time</h4>
+                <span class="comp-badge">O(n + m)</span>
+              </div>
+              <p>
+                The overall average execution time is approximately linear <strong>O(n + m)</strong>. In the worst case of catastrophic hash collisions, collision verification can degrade to O(n &middot; m), but choosing a large prime modulus (M = 2<sup>61</sup> - 1) reduces this risk to practically zero.
+              </p>
+            </div>
+
+            <div class="comp-box">
+              <div class="comp-box-header">
+                <h4>Memory Space</h4>
+                <span class="comp-badge">O(n)</span>
+              </div>
+              <p>
+                Storing the source text's tokens, shingle metadata, and hash map bucket pointers requires memory directly proportional to the source document size <em>n</em>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Interactive Big-O vs Naive Calculator -->
+          <div class="calc-sandbox">
+            <h4 style="margin-bottom: 8px;">Interactive Operation Count: Rabin–Karp vs Naive String Matching</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+              See the astronomical computational difference when comparing large document sizes:
+            </p>
+            <div class="calc-inputs-row">
+              <div class="calc-input-item">
+                <label for="calc-n">Source Words (n):</label>
+                <input type="number" id="calc-n" value="10000" min="100" max="1000000" step="1000">
+              </div>
+              <div class="calc-input-item">
+                <label for="calc-m">Checked Words (m):</label>
+                <input type="number" id="calc-m" value="5000" min="100" max="1000000" step="1000">
+              </div>
+            </div>
+
+            <div class="calc-results-bar">
+              <div class="calc-stat-card optimal">
+                <span class="metric-title">Rabin–Karp + Hash Map [O(n + m)]</span>
+                <span id="calc-rk-ops" class="metric-val" style="color: #10b981;">15,000 ops</span>
+                <span class="metric-sub">Linear arithmetic operations &bull; ~2 milliseconds</span>
+              </div>
+              <div class="calc-stat-card naive">
+                <span class="metric-title">Naive Substring Search [O(n &times; m &times; k)]</span>
+                <span id="calc-naive-ops" class="metric-val" style="color: #ef4444;">250,000,000 ops</span>
+                <span id="calc-speedup" class="metric-sub">16,667&times; slower &bull; seconds to minutes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <h4>Plagiarism Detector Using Rolling Hash (Rabin–Karp) and Hash Maps</h4>
+          <p>
+            An educational web platform built to demonstrate algorithmic text matching, polynomial rolling hashes, and hash-map inverted indexing for students and educators in computer science and digital humanities.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Core Algorithms</h5>
+          <ul>
+            <li><a href="#how-it-works">Rabin–Karp Polynomial Hash</a></li>
+            <li><a href="#how-it-works">Word N-Gram Shingling</a></li>
+            <li><a href="#how-it-works">Hash Map Inverted Index</a></li>
+            <li><a href="#how-it-works">Collision Verification</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Academic References</h5>
+          <ul>
+            <li><a href="https://doi.org/10.1147/rd.312.0249" target="_blank" rel="noopener">Rabin & Karp (1987)</a></li>
+            <li><a href="https://dl.acm.org/doi/10.1145/872757.872770" target="_blank" rel="noopener">Schleimer et al. (2003 Winnowing)</a></li>
+            <li><a href="#complexity-architecture">Average O(n + m) Proof</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          &copy; Educational Demonstration Platform &bull; No cookies &bull; No telemetry &bull; Zero server data storage.
+        </div>
+        <div>
+          Designed with modern academic technology aesthetics.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
